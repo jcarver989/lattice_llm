@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "lattice_llm"
+version = "0.1.0"
+description = "A library for building LLM agents as Graphs"
+authors = ["Josh Carver"]
+readme = "README.md"
+packages = [{include = "lattice_llm"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+boto3 = "*"
+boto3-stubs = {extras = ["bedrock", "bedrock-runtime", "essential"], version = "^1.35.13.post1"}
+pydantic = "^2.9.0"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "*"
+mypy = "*"
+pytest = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]

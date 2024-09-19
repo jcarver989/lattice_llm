@@ -1,0 +1,23 @@
+{
+  "mypy.dmypyExecutable": "${workspaceFolder}/.venv/bin/dmypy",
+  "python.analysis.fixAll": ["source.unusedImports"],
+  "python.testing.pytestArgs": ["test"],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true,
+  "black-formatter.args": ["--line-length", "120"],
+  "python.testing.pytestArgs": ["-vv"],
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit"
+  },
+  "editor.wordWrap": "on",
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/__pycache__": true,
+    "**/.pytest_cache": true
+  }
+}
