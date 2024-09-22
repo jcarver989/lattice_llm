@@ -6,10 +6,16 @@ from mypy_boto3_bedrock_runtime.type_defs import MessageUnionTypeDef as Message
 from pydantic import BaseModel
 
 from lattice_llm.bedrock import BedrockClient, ModelId, converse, converse_with_structured_output, text
-from lattice_llm.graph import END, Graph, run_chatbot_on_cli
+from lattice_llm.graph import END, Graph, Node
 from lattice_llm.state import LocalStateStore
 
-from .prompts import act_1_prompt, act_2_prompt, act_3_prompt, character_creation_prompt, end_game_prompt
+from examples.dungeon_master.prompts import (
+    act_1_prompt,
+    act_2_prompt,
+    act_3_prompt,
+    character_creation_prompt,
+    end_game_prompt,
+)
 
 
 @dataclass
@@ -118,7 +124,7 @@ def end_game(context: Context, state: State) -> State:
     return State.merge(state, State(messages=[message]))
 
 
-def continue_or_end(context: Context, state: State) -> str:
+def continue_or_end(context: Context, state: State) -> Node[Context, State]:
     response = converse_with_structured_output(
         client=context.bedrock,
         model_id=ModelId.CLAUDE_3_5,
@@ -128,15 +134,13 @@ def continue_or_end(context: Context, state: State) -> str:
     )
 
     if not response.character_creation_complete:
-        return character_creation.__name__
+        return character_creation
     elif response.character_creation_complete and not response.act_1_complete:
-        return act_1.__name__
+        return act_1
     elif not response.act_2_complete:
-        return act_2.__name__
-    elif not response.act_3_complete:
-        return act_3.__name__
+        return act_2
     else:
-        return END
+        return act_3
 
 
 context = Context(bedrock=boto3.client("bedrock-runtime"), user_id="user-1", tools=[])
@@ -153,4 +157,8 @@ graph = Graph[Context, State](
 
 store = LocalStateStore(lambda: State(messages=[text("...")]))
 
-run_chatbot_on_cli(graph, context, store)
+from lattice_llm.streamlit.run_graph import run_graph_on_streamlit
+
+run_graph_on_streamlit(graph, context, State(messages=[text("...")]))
+
+# run_chatbot_on_cli(graph, context, store)

@@ -7,8 +7,9 @@ from pydantic import BaseModel
 
 from lattice_llm.bedrock import BedrockClient, ModelId, converse, converse_with_structured_output
 from lattice_llm.bedrock.messages import text
-from lattice_llm.graph import END, Graph, Node, run_chatbot_on_cli
+from lattice_llm.graph import END, Graph, Node
 from lattice_llm.state import LocalStateStore
+from lattice_llm.streamlit.run_graph import run_graph_on_streamlit
 
 
 @dataclass
@@ -99,4 +100,10 @@ graph = Graph[Context, State](
 
 store = LocalStateStore(lambda: State(messages=[]))
 
-run_chatbot_on_cli(graph, context, store)
+
+# from lattice_llm.streamlit.render_graph import render_graph
+# render_graph(graph)
+run_graph_on_streamlit(graph, context, State(messages=[]))
+
+
+# run_chatbot_on_cli(graph, context, store)
