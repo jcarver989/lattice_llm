@@ -11,6 +11,8 @@ python = "^3.11"
 boto3 = "*"
 boto3-stubs = {extras = ["bedrock", "bedrock-runtime", "essential"], version = "^1.35.13.post1"}
 pydantic = "^2.9.0"
+streamlit = "^1.38.0"
+streamlit-flow-component = "^1.2.9"
 
 
 [tool.poetry.group.dev.dependencies]
