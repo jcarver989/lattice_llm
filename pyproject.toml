@@ -15,9 +15,11 @@ pydantic = "^2.9.0"
 # Extras
 streamlit = { version = "^1.38.0", optional = true }
 streamlit-flow-component =  { version = "^1.2.9", optional = true }
+ollama = { version = "^0.3.3", optional = true }
 
 [tool.poetry.extras]
 streamlit = ["streamlit", "streamlit-flow-component"]
+ollama = ["ollama"]
 
 [tool.poetry.group.dev.dependencies]
 black = "*"
