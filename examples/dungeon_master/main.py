@@ -5,10 +5,6 @@ import boto3
 from mypy_boto3_bedrock_runtime.type_defs import MessageUnionTypeDef as Message
 from pydantic import BaseModel
 
-from lattice_llm.bedrock import BedrockClient, ModelId, converse, converse_with_structured_output, text
-from lattice_llm.graph import END, Graph, Node
-from lattice_llm.state import LocalStateStore
-
 from examples.dungeon_master.prompts import (
     act_1_prompt,
     act_2_prompt,
@@ -16,6 +12,12 @@ from examples.dungeon_master.prompts import (
     character_creation_prompt,
     end_game_prompt,
 )
+from lattice_llm.bedrock import BedrockClient, ModelId, converse, converse_with_structured_output, text
+from lattice_llm.graph import END, Graph, Node
+from lattice_llm.graph.execution import LoadedGraph
+from lattice_llm.state import LocalStateStore
+
+from .player_character import AbilityScores
 
 
 @dataclass
@@ -69,7 +71,7 @@ def character_creation(context: Context, state: State) -> State:
         client=context.bedrock,
         model_id=ModelId.CLAUDE_3_5,
         messages=state.messages,
-        prompt=character_creation_prompt(),
+        prompt=character_creation_prompt(ability_scores=AbilityScores.get_random_scores()),
     )
 
     message = response["output"]["message"]
@@ -124,7 +126,7 @@ def end_game(context: Context, state: State) -> State:
     return State.merge(state, State(messages=[message]))
 
 
-def continue_or_end(context: Context, state: State) -> Node[Context, State]:
+def maybe_complete_character_creation(context: Context, state: State) -> Node[Context, State]:
     response = converse_with_structured_output(
         client=context.bedrock,
         model_id=ModelId.CLAUDE_3_5,
@@ -135,30 +137,72 @@ def continue_or_end(context: Context, state: State) -> Node[Context, State]:
 
     if not response.character_creation_complete:
         return character_creation
-    elif response.character_creation_complete and not response.act_1_complete:
+    else:
         return act_1
-    elif not response.act_2_complete:
+
+
+def maybe_complete_act_1(context: Context, state: State) -> Node[Context, State]:
+    response = converse_with_structured_output(
+        client=context.bedrock,
+        model_id=ModelId.CLAUDE_3_5,
+        messages=state.messages,
+        prompt="Extract the current state of the game from the previous messages.",
+        output_schema=GameState,
+    )
+
+    if not response.act_1_complete:
+        return act_1
+    else:
+        return act_2
+
+
+def maybe_complete_act_2(context: Context, state: State) -> Node[Context, State]:
+    response = converse_with_structured_output(
+        client=context.bedrock,
+        model_id=ModelId.CLAUDE_3_5,
+        messages=state.messages,
+        prompt="Extract the current state of the game from the previous messages.",
+        output_schema=GameState,
+    )
+
+    if not response.act_2_complete:
         return act_2
     else:
         return act_3
 
 
-context = Context(bedrock=boto3.client("bedrock-runtime"), user_id="user-1", tools=[])
-graph = Graph[Context, State](
-    nodes=[character_creation, act_1, act_2, act_3, end_game],
-    edges=[
-        (character_creation, continue_or_end),
-        (act_1, continue_or_end),
-        (act_2, continue_or_end),
-        (act_3, continue_or_end),
-        (end_game, END),
-    ],
-)
+def maybe_complete_act_3(context: Context, state: State) -> Node[Context, State]:
+    response = converse_with_structured_output(
+        client=context.bedrock,
+        model_id=ModelId.CLAUDE_3_5,
+        messages=state.messages,
+        prompt="Extract the current state of the game from the previous messages.",
+        output_schema=GameState,
+    )
 
-store = LocalStateStore(lambda: State(messages=[text("...")]))
+    if not response.act_3_complete:
+        return act_3
+    else:
+        return end_game
 
-from lattice_llm.streamlit.run_graph import run_graph_on_streamlit
 
-run_graph_on_streamlit(graph, context, State(messages=[text("...")]))
+def load_graph() -> LoadedGraph:
+    context = Context(bedrock=boto3.client("bedrock-runtime"), user_id="user-1", tools=[])
+    graph = Graph[Context, State](
+        nodes=[character_creation, act_1, act_2, act_3, end_game],
+        edges=[
+            (character_creation, maybe_complete_character_creation),
+            (act_1, maybe_complete_act_1),
+            (act_2, maybe_complete_act_2),
+            (act_3, maybe_complete_act_3),
+            (end_game, END),
+        ],
+    )
+
+    store = LocalStateStore[State](lambda: State(messages=[text("...")]))
+    return LoadedGraph(graph, context, store)
+
+
+# run_graph_on_streamlit(graph, context, State(messages=[text("...")]))
 
 # run_chatbot_on_cli(graph, context, store)

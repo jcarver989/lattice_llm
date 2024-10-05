@@ -8,9 +8,9 @@ from pydantic import BaseModel
 from lattice_llm.bedrock import BedrockClient
 from lattice_llm.bedrock.messages import text
 from lattice_llm.graph import END, Graph, Node
+from lattice_llm.graph.execution import LoadedGraph
 from lattice_llm.ollama import ModelId, converse, converse_with_structured_output
 from lattice_llm.state import LocalStateStore
-from lattice_llm.streamlit.run_graph import run_graph_on_streamlit
 
 
 @dataclass
@@ -97,16 +97,16 @@ def get_temperature(city: str) -> int:
     return 50
 
 
-context = Context(bedrock=boto3.client("bedrock-runtime"), user_id="user-1", tools=[get_temperature])
-graph = Graph[Context, State](
-    nodes=[welcome, assistant, goodbye],
-    edges=[
-        (welcome, assistant),
-        (assistant, continue_or_end),
-        (goodbye, END),
-    ],
-)
+def load_graph() -> LoadedGraph:
+    context = Context(bedrock=boto3.client("bedrock-runtime"), user_id="user-1", tools=[get_temperature])
 
-store = LocalStateStore(lambda: State(messages=[]))
+    graph = Graph[Context, State](
+        nodes=[welcome, assistant, goodbye],
+        edges=[
+            (welcome, assistant),
+            (assistant, continue_or_end),
+            (goodbye, END),
+        ],
+    )
 
-run_graph_on_streamlit(graph, context, State(messages=[]))
+    return LoadedGraph(graph, context, LocalStateStore(lambda: State(messages=[])))

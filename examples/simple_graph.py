@@ -101,9 +101,4 @@ graph = Graph[Context, State](
 store = LocalStateStore(lambda: State(messages=[]))
 
 
-# from lattice_llm.streamlit.render_graph import render_graph
-# render_graph(graph)
 run_graph_on_streamlit(graph, context, State(messages=[]))
-
-
-# run_chatbot_on_cli(graph, context, store)
