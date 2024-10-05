@@ -1,4 +1,4 @@
-from typing import Generator, Protocol, TypeVar, Callable
+from typing import Generator, Protocol, TypeVar, Callable, Generic
 
 from mypy_boto3_bedrock_runtime.type_defs import MessageUnionTypeDef as Message
 
@@ -6,6 +6,7 @@ from ..bedrock import text, maybe_execute_tools
 from ..util import Color, color_text, print_message
 from .graph import START, Graph, GraphExecutionResult
 from ..state import StateStore
+from dataclasses import dataclass
 
 
 class ChatbotContext(Protocol):
@@ -19,6 +20,16 @@ class ChatbotState(Protocol):
 
 T = TypeVar("T")
 U = TypeVar("U")
+
+V = TypeVar("V", bound=ChatbotContext)
+W = TypeVar("W", bound=ChatbotState)
+
+
+@dataclass
+class LoadedGraph(Generic[W]):
+    graph: Graph
+    context: ChatbotContext
+    store: StateStore[W]
 
 
 def run_graph(
@@ -37,10 +48,6 @@ def run_graph(
         store.set(store_key, result.state)
         is_finished = result.is_finished
         yield result
-
-
-V = TypeVar("V", bound=ChatbotContext)
-W = TypeVar("W", bound=ChatbotState)
 
 
 def run_chatbot_on_cli(graph: Graph[V, W], context: V, store: StateStore[W]) -> GraphExecutionResult[W]:
