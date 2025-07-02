@@ -4,7 +4,7 @@ from os.path import dirname
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from lattice_llm.dev_server.util import _get_module_name_from_path, load_graph_from_file
+from lattice_llm.dev_server.util import _get_module_path, load_graph_from_file
 
 
 def load_graph():
@@ -41,7 +41,7 @@ def assert_graph_loads(files: dict[str, str], entrypoint: str) -> None:
     root = TemporaryDirectory()
 
     for file, contents in files.items():
-        print(dirname(f"{root.name}/{file}"))
+        print(f"{root.name}/{file}")
         makedirs(dirname(f"{root.name}/{file}"), exist_ok=True)
         with open(f"{root.name}/{file}", "w") as f:
             f.write(contents)
@@ -62,15 +62,10 @@ def assert_graph_loads(files: dict[str, str], entrypoint: str) -> None:
 def test_get_module_from_path() -> None:
     root = TemporaryDirectory()
     makedirs(f"{root.name}/foo/boo")
-
     Path(f"{root.name}/foo/__init__.py").touch()
-
     Path(f"{root.name}/foo/boo/__init__.py").touch()
-
     Path(f"{root.name}/foo/boo/main.py").touch()
-
-    result = _get_module_name_from_path(f"{root.name}/foo/boo/main.py")
-
+    _, result = _get_module_path(f"{root.name}/foo/boo/main.py")
     assert result == "foo.boo.main"
 
 
@@ -82,3 +77,21 @@ def test_load_graph_from_file() -> None:
 
 def test_load_graph_from_no_init_file() -> None:
     assert_graph_loads({"foo/main.py": getsource(load_graph)}, "foo/main.py")
+
+
+def test_load_graph_with_relative_imports() -> None:
+    assert_graph_loads(
+        {
+            "foo/__init__.py": "",
+            "foo/boo/__init__.py": "",
+            "foo/boo/util.py": """
+def util_func() -> int:
+    return 1
+""",
+            "foo/boo/main.py": f"""
+from .util import util_func
+{getsource(load_graph)}
+""",
+        },
+        "foo/boo/main.py",
+    )
